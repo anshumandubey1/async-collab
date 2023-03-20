@@ -1,0 +1,23 @@
+{
+  "name": "async-collab",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite-node src/main.ts"
+  },
+  "devDependencies": {
+    "@types/server-destroy": "^1.0.1",
+    "typescript": "^4.9.3",
+    "vite": "^4.1.0",
+    "vite-node": "^0.29.3"
+  },
+  "dependencies": {
+    "@googleapis/chat": "^12.0.0",
+    "@googleapis/oauth2": "^1.0.0",
+    "@types/node": "^18.15.1",
+    "googleapis": "^112.0.0",
+    "open": "^8.4.2",
+    "server-destroy": "^1.0.1"
+  }
+}
