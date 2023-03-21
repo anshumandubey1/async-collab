@@ -1,101 +1,77 @@
-import {google} from 'googleapis';
-import http from 'http';
-import url from 'url';
-import opn from 'open';
-import destroyer from 'server-destroy';
-import { OAuth2Client } from 'google-auth-library';
+import express from "express";
+import { WebClient } from "@slack/web-api";
+import { getSummary } from "./openAi";
 
-'use strict';
+const app = express();
+const PORT = 3000;
 
-const CLIENT_ID = process.env.CLIENT_ID
-const CLIENT_SECRET = process.env.CLIENT_SECRET
+const client = new WebClient();
+app.use(express.static("public"));
+app.use(express.json());
 
-/**
- * To use OAuth2 authentication, we need access to a CLIENT_ID, CLIENT_SECRET, AND REDIRECT_URI.  To get these credentials for your application, visit https://console.cloud.google.com/apis/credentials.
- */
-let keys = {redirect_uris: ['http://localhost:8090'], client_id: CLIENT_ID, client_secret: CLIENT_SECRET};
-
-// /**
-//  * Create a new OAuth2 client with the configured keys.
-//  */
-const oauth2Client = new google.auth.OAuth2(
-  keys.client_id,
-  keys.client_secret,
-  keys.redirect_uris[0]
-);
-
-
-/**
- * This is one of the many ways you can configure googleapis to use authentication credentials.  In this method, we're setting a global reference for all APIs.  Any other API you use here, like google.drive('v3'), will now use this auth client. You can also override the auth client at the service and method call levels.
- */
-google.options({auth: oauth2Client});
-
-/**
- * Open an http server to accept the oauth callback. In this simple example, the only request to our webserver is to /callback?code=<code>
- */
-async function authenticate(scopes: any[]) {
-  return new Promise<OAuth2Client>((resolve, reject) => {
-    // grab the url that will be used for authorization
-    const authorizeUrl = oauth2Client.generateAuthUrl({
-      access_type: 'offline',
-      scope: scopes.join(' '),
+app.get("/channels", async(req, res)=> {
+  const token = req.headers.authorization
+  if(!token) res.sendStatus(403)
+  try {
+    const response = await client.conversations.list({
+      token,
     });
-    const server = http
-      .createServer(async (req, res) => {
-        try {
-          if (req.url && req.url.indexOf('/?code=') > -1) {
-            const qs = new url.URL(req.url, 'http://localhost:8090')
-              .searchParams;
-            res.end('Authentication successful! Please return to the console.');
-            server.destroy();
-            const code = qs.get('code')
-            console.log("qs", code)
-            if(code){
-              const {tokens} = await oauth2Client.getToken(code);
-              oauth2Client.credentials = tokens; // eslint-disable-line require-atomic-updates
-              resolve(oauth2Client);
-            }
-            else{
-              reject("code not present in search param of auth callback")
-            }
-          }
-        } catch (e) {
-          reject(e);
-        }
-      })
-      .listen(8090, () => {
-        // open the browser to the authorize url to start the workflow
-        opn(authorizeUrl, {wait: true}).then(async (cp) => {
-          cp.unref()
-        });
-      });
-    destroyer(server);
-  });
-}
-
-async function runSample(token: string) {
-  const chat = google.chat({
-    version: 'v1',
-    auth: oauth2Client
-  })
-  console.log("token", token)
-  const res = await chat.spaces.list({
-    // access_token: token,
-    oauth_token: token
-  })
-  console.log(res.status)
-  console.log(res.data)
-  console.table(res.data);
-}
-
-const scopes = [
-  'https://www.googleapis.com/auth/chat.spaces'
-];
-
-authenticate(scopes)
-  .then(async (client: OAuth2Client) => {
-    if(client.credentials.access_token){
-      await runSample(client.credentials.access_token)
+    
+    if(response.ok){
+      res.send(response.channels?.filter(c => !c.is_private))
+    }else{
+      res.send(response.error)
     }
-  })
-  .catch(console.error);
+  } catch (e) {}
+})
+
+app.post("/generateSummary", async(req,res) => {
+  console.log("here")
+  const token = req.headers.authorization
+  if(!token) res.sendStatus(403)
+  const channels = req.body.channels
+  if(!channels.length) {
+    res.sendStatus(400)
+    res.send("channels is required body parameter")
+  }
+  try {
+    const responses = []
+    for await (const channel of channels) {
+      const response = await client.conversations.history({channel, token})
+      if(response.messages){
+        responses.push(...response.messages.map(m => `${m.user}:${m.text}`))
+      }
+    }
+    
+    const summary =  await getSummary(responses)
+    
+    if(summary.data){
+      const response = summary.data.choices.map(c => c.text).join(",")
+      res.sendStatus(200)
+      res.send(response)
+    }else{
+      res.sendStatus(500)
+      res.send("Failed to generate summary")
+    }
+  } catch (e) {
+    res.sendStatus(500)
+    res.send((e as Error).message)
+  }
+})
+
+app.get("/", async (req, res) => {
+  console.log(req.url)
+  const qs = new URL(req.url, "https://7771-160-238-78-161.in.ngrok.io").searchParams;
+  const code = qs.get("code");
+  const auth = await client.oauth.v2.access({
+    code: code || '',
+    client_id: process.env.SLACK_CLIENT_ID || '',
+    client_secret: process.env.SLACK_CLIENT_SECRET || '',
+    redirect_uri: "https://7771-160-238-78-161.in.ngrok.io",
+  });
+  res.send({token: auth.access_token})
+});
+
+app.listen(PORT, () => {
+  console.log("listening at", PORT);
+});
