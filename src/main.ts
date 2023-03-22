@@ -1,3 +1,6 @@
+import dotenv from 'dotenv';
+dotenv.config()
+
 import express from "express";
 import { WebClient } from "@slack/web-api";
 import { getSummary } from "./openAi";
@@ -18,11 +21,13 @@ app.get("/channels", async(req, res)=> {
     });
     
     if(response.ok){
-      res.send(response.channels?.filter(c => !c.is_private))
+      res.status(200).send(response.channels?.filter(c => !c.is_private).map(x=>x.id).join(','))
     }else{
-      res.send(response.error)
+      throw new Error(response.error)
     }
-  } catch (e) {}
+  } catch (e) {
+    res.status(500).json({error: e})
+  }
 })
 
 app.post("/generateSummary", async(req,res) => {
@@ -30,46 +35,48 @@ app.post("/generateSummary", async(req,res) => {
   const token = req.headers.authorization
   if(!token) res.sendStatus(403)
   const channels = req.body.channels
-  if(!channels.length) {
-    res.sendStatus(400)
-    res.send("channels is required body parameter")
+  if(!channels?.length) {
+    res.status(400).send("channels is required body parameter")
   }
   try {
     const responses = []
     for await (const channel of channels) {
-      const response = await client.conversations.history({channel, token})
-      if(response.messages){
+      const response = await client.conversations.history({channel, token}).catch((err) => {console.log(String(err))})
+      if(response?.messages){
         responses.push(...response.messages.map(m => `${m.user}:${m.text}`))
       }
     }
-    
+    // console.log({responses})
     const summary =  await getSummary(responses)
-    
+
     if(summary.data){
       const response = summary.data.choices.map(c => c.text).join(",")
-      res.sendStatus(200)
-      res.send(response)
+      res.status(200).send(response)
     }else{
-      res.sendStatus(500)
-      res.send("Failed to generate summary")
+      throw new Error("Failed to generate summary")
     }
   } catch (e) {
-    res.sendStatus(500)
-    res.send((e as Error).message)
+    console.log(e)
+    res.status(500).send((e as Error).message)
   }
 })
 
-app.get("/", async (req, res) => {
-  console.log(req.url)
-  const qs = new URL(req.url, "https://7771-160-238-78-161.in.ngrok.io").searchParams;
-  const code = qs.get("code");
-  const auth = await client.oauth.v2.access({
-    code: code || '',
-    client_id: process.env.SLACK_CLIENT_ID || '',
-    client_secret: process.env.SLACK_CLIENT_SECRET || '',
-    redirect_uri: "https://7771-160-238-78-161.in.ngrok.io",
-  });
-  res.send({token: auth.access_token})
+app.get("/callback", async (req, res) => {
+  try {
+    console.log(req.url)
+    const qs = new URL(req.url, process.env.BASE_URL).searchParams;
+    const code = qs.get("code");
+    const auth = await client.oauth.v2.access({
+      code: code || '',
+      client_id: process.env.SLACK_CLIENT_ID || '',
+      client_secret: process.env.SLACK_CLIENT_SECRET || '',
+      redirect_uri: process.env.BASE_URL+'/callback',
+    });
+    res.redirect(`/?slackToken=${auth.access_token}`);
+  } catch (e) {
+    res.status(500).send((e as Error).message)
+  }
+
 });
 
 app.listen(PORT, () => {
