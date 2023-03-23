@@ -15,21 +15,32 @@
         <h1>
           Asynchronous Colaborations
         </h1>
-        <button id="addToSlack" class="btn"><a href="https://slack.com/oauth/v2/authorize?scope=channels:read,channels:history&client_id=4967730427047.4968975143847">Add to Slack</a></button>
-        <button id="generateSummary" class="btn">Generate Summary</button>
         <div class="loader">
           <div class="loader__figure"></div>
           <p class="loader__label">Loading</p>
         </div>
-        <div id="summaryBox">
+        <button id="addToSlack" class="btn"><a href="https://slack.com/oauth/v2/authorize?scope=channels:read,channels:history&client_id=4967730427047.4968975143847">Add to Slack</a></button>
+        <div class="box" id="channelSelectorBox">
+          <h2>Select Channels</h2>
+          <div id="channelSelector">
+            
+          </div>
+          <button id="applySelectedChannels" class="btn">Apply</button>    
+        </div>
+        <div class="buttons">
+          <button id="generateSummary" class="btn">Generate Summary</button>
+          <button class="btn icon" id="resetChannels"><img src="reset.svg" alt="Reset" ></button>
+        </div>
+
+
+        <div id="summaryBox" class="box">
           <h2>Summary</h2>
           <p id="summary"></p>
         </div>
+
       </div>
 
     </div>
-    </div>
-    <div id="app">
     <script src="index.js"></script>
   </body>
 </html>
