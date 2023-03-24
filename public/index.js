@@ -3,17 +3,48 @@ const generateSummaryButton = document.getElementById('generateSummary');
 const summaryBox = document.getElementById('summaryBox');
 const summaryParagraph = document.getElementById('summary');
 const loading = document.querySelector('.loader')
+const channelSelectorBox = document.getElementById('channelSelectorBox');
+const channelSelector = document.getElementById('channelSelector');
+const applySelectedChannels = document.getElementById('applySelectedChannels');
+const resetChannels = document.getElementById('resetChannels');
+let selectedChannels = [];
+
 
 generateSummaryButton.style.display = 'none';
 summaryBox.style.display = 'none';
 addToSlackButton.style.display = 'none';
+channelSelectorBox.style.display = 'none';
+resetChannels.style.display = 'none';
 
 const showError = (errorMessage) => {
   console.error(errorMessage)
 }
 
+const handleChannel = (id) => {
+  if (selectedChannels.includes(id)) {
+    selectedChannels = selectedChannels.filter(x => x!==id);
+  } else {
+    selectedChannels.push(id);
+  }
+  // console.log({selectedChannels})
+}
+
+
+
+const generateCheckBox = (id, name, checked) => {
+  // console.log({id, name, checked, selectedChannels})
+  return `<label class="form-control">
+    <input type="checkbox" name="checkbox" onclick="handleChannel('${id}') ${checked?'checked':''}"/>
+    ${name}
+  </label>
+  `
+}
+
+
+
 generateSummaryButton.onclick = async () => {
   generateSummaryButton.style.display = 'none';
+  resetChannels.style.display = 'none';
   loading.style.display = 'block'
   console.log('Trying to generate summary')
   const response = await fetch('/generateSummary', {
@@ -34,23 +65,46 @@ generateSummaryButton.onclick = async () => {
   summaryBox.style.display = 'block'
 }
 
+applySelectedChannels.onclick = () => {
+  localStorage.setItem('channels', selectedChannels.join(','))
+  channelSelectorBox.style.display = 'none';
+  generateSummaryButton.style.display = 'block';
+  resetChannels.style.display = 'block';
+}
+
+const showChannelSelector = (channels) => {
+  loading.style.display = 'none';
+  let innerHTML = '';
+  for(let c of channels) {
+    innerHTML = innerHTML + generateCheckBox(c.id, c.name, selectedChannels.includes(c.id));
+  }
+  channelSelector.innerHTML = innerHTML;
+  channelSelectorBox.style.display = 'block';
+}
+
+
 const getChannels = async () => {
   try {
     console.log('Trying to get channels')
-    const response = await fetch('/channels', {
+    const res = await fetch('/channels', {
       headers: {
         'authorization': localStorage.getItem('slackToken')
       }
     })
-    const data = await response.text();
-    // const channels = data.map(x=>x.id).join(',');
-    console.log({data})
-    localStorage.setItem('channels', data)
-    loading.style.display = 'none'
-    generateSummaryButton.style.display = 'block';
+    const response = await res.json();
+    return response.data;
   } catch (error) {
     showError(String(error))
   }
+}
+
+resetChannels.onclick = async () => {
+  localStorage.removeItem('channels')
+  selectedChannels = []
+  generateSummaryButton.style.display = 'none';
+  resetChannels.style.display = 'none';
+  loading.style.display = 'block';
+  getChannels().then(showChannelSelector);
 }
 
 const main = () => {
@@ -65,10 +119,12 @@ const main = () => {
     addToSlackButton.style.display = 'none'
 
     if(localStorage.getItem('channels')) {
+      selectedChannels = localStorage.getItem('channels').split(',');
       loading.style.display = 'none'
       generateSummaryButton.style.display = 'block';
+      resetChannels.style.display = 'block';
     } else {
-      getChannels();
+      getChannels().then(showChannelSelector);
     }
   } else {
     loading.style.display = 'none'

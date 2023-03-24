@@ -21,7 +21,7 @@ app.get("/channels", async(req, res)=> {
     });
     
     if(response.ok){
-      res.status(200).send(response.channels?.filter(c => !c.is_private).map(x=>x.id).join(','))
+      res.status(200).json({ data: response.channels?.filter(c => !c.is_private)})
     }else{
       throw new Error(response.error)
     }
