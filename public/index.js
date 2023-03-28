@@ -1,7 +1,8 @@
 const addToSlackButton = document.getElementById('addToSlack');
 const generateSummaryButton = document.getElementById('generateSummary');
 const summaryBox = document.getElementById('summaryBox');
-const summaryParagraph = document.getElementById('summary');
+const slackSummaryParagraph = document.getElementById('slack-summary');
+const jiraSummaryParagraph = document.getElementById('jira-summary');
 const loading = document.querySelector('.loader')
 const channelSelectorBox = document.getElementById('channelSelectorBox');
 const channelSelector = document.getElementById('channelSelector');
@@ -58,11 +59,11 @@ generateSummaryButton.onclick = async () => {
       channels: localStorage.getItem('channels').split(',')
     })
   })
-  const data = await response.text();
+  const data = await response.json();
   console.log({data})
-  summaryParagraph.innerText = data.trim();
+  slackSummaryParagraph.innerText = data.slackResponse.trim();
+  jiraSummaryParagraph.innerText = data.jiraResponse.trim();
   loading.style.display = 'none'
-  // summaryParagraph.innerText = 'Lorem, ipsum dolor sit amet consectetur adipisicing elit. Minus iusto qui voluptatibus distinctio eos rem id quaerat eligendi, dolorem iure vero dolore veritatis velit expedita eum, harum blanditiis exercitationem? Nihil dolorum et rerum illum necessitatibus, veritatis ratione sit labore adipisci nemo provident. Mollitia praesentium reprehenderit nemo quod, eius cumque dignissimos! Fugiat aliquam quibusdam quasi dolor, vitae minus nostrum provident voluptate ullam deleniti quas beatae veritatis reprehenderit hic sunt corporis vel! Deserunt mollitia iste, ea, nam, similique sint dolorem ipsa sunt harum quisquam fuga cum totam! Numquam possimus maiores optio ratione qui, eius doloribus. Eius placeat possimus consectetur dolorem optio vitae?'
   summaryBox.style.display = 'block'
 }
 
@@ -74,7 +75,7 @@ applySelectedChannels.onclick = () => {
 }
 
 const addSummaryToGoogleDoc = async () => {
-  const body = summaryParagraph.innerText;
+  const body = slackSummaryParagraph.innerText + jiraSummaryParagraph.innerHTML;
   const res = await fetch('/google/addToFile', {
     method: 'POST',
     headers: {

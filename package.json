@@ -15,6 +15,7 @@
     "vite-node": "^0.29.3"
   },
   "dependencies": {
+    "@esbuild/darwin-x64": "^0.17.14",
     "@googleapis/chat": "^12.0.0",
     "@googleapis/oauth2": "^1.0.0",
     "@slack/web-api": "^6.8.1",

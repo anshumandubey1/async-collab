@@ -6,7 +6,8 @@ import { WebClient } from "@slack/web-api";
 import { getSummary } from "./openAi";
 import { decrypt, encrypt } from './crypto';
 import { addToFile, generateAuthUrl, getTokensFromCode, refreshAccessToken } from './googleDocs';
-import { queryParamConstructor } from './helpers';
+import { humaniseJiraEvent, queryParamConstructor } from './helpers';
+import {events} from './jira-events.json';
 
 const app = express();
 const PORT = 3000;
@@ -17,7 +18,7 @@ app.use(express.json());
 
 app.get("/channels", async (req, res) => {
   try {
-    let token = req.headers.authorization
+    let token: string|undefined = req.headers.authorization
     if(!token) return res.sendStatus(403)
     token = decrypt(token);
     const response = await client.conversations.list({
@@ -52,12 +53,14 @@ app.post("/generateSummary", async(req,res) => {
         responses.push(...response.messages.map(m => `${m.user}:${m.text}`))
       }
     }
-    // console.log({responses})
-    const summary =  await getSummary(responses)
 
-    if(summary.data){
-      const response = summary.data.choices.map(c => c.text).join(",")
-      return res.status(200).send(response)
+    const summary =  await getSummary(responses)
+    const jiraSummary =  await getSummary(events.map(humaniseJiraEvent))
+
+    if(jiraSummary.data && summary.data){
+      const jiraResponse = jiraSummary.data.choices.map(c => c.text).join(",")
+      const slackResponse = summary.data.choices.map(c => c.text).join(",")
+      return res.status(200).send({slackResponse, jiraResponse})
     }else{
       throw new Error("Failed to generate summary")
     }

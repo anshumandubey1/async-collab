@@ -1,3 +1,5 @@
+import {events} from './jira-events.json'
+
 export const queryParamConstructor = (object: object) => {
   return Object.entries(object).map(x => x.join('=')).join('&');
 }
@@ -20,4 +22,8 @@ ${body}
     },
   ];
   return requests;
+}
+
+export const humaniseJiraEvent = (e: typeof events[number]) => {
+  return JSON.stringify(e)
 }
