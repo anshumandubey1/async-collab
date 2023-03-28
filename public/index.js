@@ -7,6 +7,7 @@ const channelSelectorBox = document.getElementById('channelSelectorBox');
 const channelSelector = document.getElementById('channelSelector');
 const applySelectedChannels = document.getElementById('applySelectedChannels');
 const resetChannels = document.getElementById('resetChannels');
+const addToGoogleDoc = document.getElementById('addToGoogleDoc');
 let selectedChannels = [];
 
 
@@ -72,6 +73,73 @@ applySelectedChannels.onclick = () => {
   resetChannels.style.display = 'block';
 }
 
+const addSummaryToGoogleDoc = async () => {
+  const body = summaryParagraph.innerText;
+  const res = await fetch('/google/addToFile', {
+    method: 'POST',
+    headers: {
+      "Content-Type": "application/json",
+      'authorization': localStorage.getItem('googleAccessToken')
+    },
+    body: JSON.stringify({
+      body
+    })
+  });
+  const response = await res.json();
+  if(res.status !== 200) {
+    throw new Error(response.error)
+  }
+  // console.log({response})
+  const link =  response.data.docLink;
+  addToGoogleDoc.innerText = 'Add To Google Doc';
+  addToGoogleDoc.style.display = 'none';
+  window.open(link, '_blank').focus();
+}
+
+const refreshAccessToken = async () => {
+  const res = await fetch('/google/refreshAccessToken', {
+    method: 'GET',
+    headers: {
+      "Content-Type": "application/json",
+      'authorization': localStorage.getItem('googleRefreshToken')
+    }
+  });
+  const response = await res.json();
+  if(res.status !== 200) {
+    throw new Error(response.error)
+  }
+  localStorage.setItem('googleAccessToken', response.googleAccessToken);
+  localStorage.setItem('googleTokenExpiryDate', response.googleTokenExpiryDate);
+}
+
+addToGoogleDoc.onclick = async () => {
+  try {
+    addToGoogleDoc.innerText = 'Loading...';
+    addToGoogleDoc.disabled = true;
+    if(!localStorage.getItem('googleTokenExpiryDate')) {
+      window.open('/google', '_blank').focus();
+      return;
+    } else if(
+      Number(localStorage.getItem('googleTokenExpiryDate')) < 
+      Date.now()
+    ) {
+      await refreshAccessToken().catch((error) => {
+        window.open('/google', '_blank').focus();
+        throw error;
+      });
+    }
+    await addSummaryToGoogleDoc();
+  } catch (error) {
+    showError(error);
+  }
+}
+
+addEventListener("storage", async (event) => {
+  if(event.key === 'googleTokenExpiryDate') {
+    await addSummaryToGoogleDoc();
+  }
+});
+
 const showChannelSelector = (channels) => {
   loading.style.display = 'none';
   let innerHTML = '';
@@ -114,6 +182,12 @@ const main = () => {
     history.replaceState(null, null, '/');
   }
 
+  if(params.get('googleAccessToken')) {
+    localStorage.setItem('googleAccessToken', params.get('googleAccessToken'));
+    localStorage.setItem('googleRefreshToken', params.get('googleRefreshToken'));
+    localStorage.setItem('googleTokenExpiryDate', params.get('googleTokenExpiryDate'));
+    window.close()
+  }
 
   if(localStorage.getItem('slackToken')) {
     addToSlackButton.style.display = 'none'
@@ -134,6 +208,17 @@ const main = () => {
 }
 
 main()
+
+
+
+
+
+
+
+
+
+
+//---------------- Background Anumation -------------------------------
 
 const canvas = document.querySelector('canvas');
 const ctx = canvas.getContext('2d');
