@@ -93,7 +93,6 @@ generateSummaryButton.onclick = async () => {
   buttons.style.display = 'flex';
   generateSummaryButton.innerText = 'Re-Generate Summary';
   loading.style.display = 'none'
-  // summaryParagraph.innerText = 'Lorem, ipsum dolor sit amet consectetur adipisicing elit. Minus iusto qui voluptatibus distinctio eos rem id quaerat eligendi, dolorem iure vero dolore veritatis velit expedita eum, harum blanditiis exercitationem? Nihil dolorum et rerum illum necessitatibus, veritatis ratione sit labore adipisci nemo provident. Mollitia praesentium reprehenderit nemo quod, eius cumque dignissimos! Fugiat aliquam quibusdam quasi dolor, vitae minus nostrum provident voluptate ullam deleniti quas beatae veritatis reprehenderit hic sunt corporis vel! Deserunt mollitia iste, ea, nam, similique sint dolorem ipsa sunt harum quisquam fuga cum totam! Numquam possimus maiores optio ratione qui, eius doloribus. Eius placeat possimus consectetur dolorem optio vitae?'
   summaryBox.style.display = 'flex'
   if(localStorage.getItem('googleAccessToken'))
     addSummaryToGoogleDoc();
@@ -107,7 +106,13 @@ applySelectedChannels.onclick = () => {
 
 const addSummaryToGoogleDoc = async () => {
   docLoader.style.display = 'block';
-  const body = slackSummaryParagraph.innerText + jiraSummaryParagraph.innerHTML;
+  const body = `
+Slack:
+${slackSummaryParagraph.innerText}
+
+Jira:
+${jiraSummaryParagraph.innerHTML}
+`
   const res = await fetch('/google/addToFile', {
     method: 'POST',
     headers: {
