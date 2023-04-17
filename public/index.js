@@ -1,18 +1,23 @@
 const addToSlackButton = document.getElementById('addToSlack');
+const addToJiraButton = document.getElementById('addToJira');
 const generateSummaryButton = document.getElementById('generateSummary');
 const summaryBox = document.getElementById('summaryBox');
 const slackSummaryParagraph = document.getElementById('slack-summary');
 const jiraSummaryParagraph = document.getElementById('jira-summary');
 const loading = document.querySelector('#loader')
 const channelSelectorBox = document.getElementById('channelSelectorBox');
+const projectSelectorBox = document.getElementById('projectSelectorBox');
 const channelSelector = document.getElementById('channelSelector');
+const projectSelector = document.getElementById('projectSelector');
+const applySelectedProjects = document.getElementById('applySelectedProjects');
 const applySelectedChannels = document.getElementById('applySelectedChannels');
 const resetChannels = document.getElementById('resetChannels');
 const addToGoogleDoc = document.getElementById('addToGoogleDoc');
 const docLoader = document.getElementById('docLoader');
 const openDoc = document.getElementById('openDoc');
-const buttons = document.querySelector('.buttons');
+const buttons = document.querySelectorAll('.buttons')[1];
 let selectedChannels = [];
+let selectedProjects = [];
 
 
 const errorButton = document.getElementById('error-button');
@@ -27,7 +32,9 @@ closeButton.addEventListener('click', () => {
 buttons.style.display = 'none'
 summaryBox.style.display = 'none';
 addToSlackButton.style.display = 'none';
+addToJiraButton.style.display = 'none';
 channelSelectorBox.style.display = 'none';
+projectSelectorBox.style.display = 'none';
 openDoc.style.display = 'none';
 
 const showError = (message) => {
@@ -41,21 +48,22 @@ const showError = (message) => {
   }, 10000);
 }
 
-const handleChannel = (id) => {
-  if (selectedChannels.includes(id)) {
-    selectedChannels = selectedChannels.filter(x => x!==id);
+const handleChechbox = (id, type) => {
+  const list = type === 'projects' ? selectedProjects : selectedChannels;
+  if (list.includes(id)) {
+    list = list.filter(x => x!==id);
   } else {
-    selectedChannels.push(id);
+    list.push(id);
   }
-  // console.log({selectedChannels})
+  console.log({list, selectedChannels, selectedProjects})
 }
 
 
 
-const generateCheckBox = (id, name, checked) => {
+const generateCheckBox = (id, name, checked, type) => {
   // console.log({id, name, checked, selectedChannels})
   return `<label class="form-control">
-    <input type="checkbox" name="checkbox" onclick="handleChannel('${id}') ${checked?'checked':''}"/>
+    <input type="checkbox" name="checkbox" onclick="handleChechbox('${id}', '${type}') ${checked?'checked':''}"/>
     ${name}
   </label>
   `
@@ -89,7 +97,8 @@ generateSummaryButton.onclick = async () => {
     showError('Error occured while generating summary!');
   }
   slackSummaryParagraph.innerText = response.slackResponse.trim();
-  jiraSummaryParagraph.innerText = response.jiraResponse.trim();
+  jiraSummaryParagraph.innerText = localStorage.getItem('hideJiraSummary') === 'true' ? 'No changes present!' : response.jiraResponse.trim();
+  localStorage.setItem('hideJiraSummary', 'true');
   buttons.style.display = 'flex';
   generateSummaryButton.innerText = 'Re-Generate Summary';
   loading.style.display = 'none'
@@ -102,9 +111,30 @@ applySelectedChannels.onclick = () => {
   localStorage.setItem('channels', selectedChannels.join(','))
   channelSelectorBox.style.display = 'none';
   buttons.style.display = 'flex';
+  if(!localStorage.getItem('projects')) {
+    addToJiraButton.style.display = 'block';
+  }
+}
+
+applySelectedProjects.onclick = () => {
+  localStorage.setItem('projects', selectedProjects.join(','))
+  projectSelectorBox.style.display = 'none';
+  buttons.style.display = 'flex';
+  if(!localStorage.getItem('slackToken')) {
+    addToSlackButton.style.display = 'block';
+  }
 }
 
 const addSummaryToGoogleDoc = async () => {
+  if(
+    Number(localStorage.getItem('googleTokenExpiryDate')) < 
+    Date.now()
+  ) {
+    await refreshAccessToken().catch((error) => {
+      window.open('/google', '_blank').focus();
+      throw error;
+    });
+  }
   docLoader.style.display = 'block';
   const body = `
 Slack:
@@ -159,14 +189,6 @@ addToGoogleDoc.onclick = async () => {
     if(!localStorage.getItem('googleTokenExpiryDate')) {
       window.open('/google', '_blank').focus();
       return;
-    } else if(
-      Number(localStorage.getItem('googleTokenExpiryDate')) < 
-      Date.now()
-    ) {
-      await refreshAccessToken().catch((error) => {
-        window.open('/google', '_blank').focus();
-        throw error;
-      });
     }
     await addSummaryToGoogleDoc();
   } catch (error) {
@@ -181,6 +203,26 @@ openDoc.onclick = () => {
   }
 }
 
+addToJiraButton.onclick = () => {
+  addToSlackButton.style.display = 'none';
+  buttons.style.display = 'none';
+  addToJiraButton.style.display = 'none';
+  loading.style.display = 'block';
+  setTimeout(() => {
+    loading.style.display = 'none';
+    showProjectSelector([
+      {
+        id: 'AC',
+        name: 'Async Collaboration'
+      },
+      {
+        id: 'TE',
+        name: 'Testing ACE'
+      }
+    ])
+  }, 1300);
+}
+
 addEventListener("storage", async (event) => {
   if(event.key === 'googleTokenExpiryDate') {
     await addSummaryToGoogleDoc();
@@ -188,13 +230,24 @@ addEventListener("storage", async (event) => {
 });
 
 const showChannelSelector = (channels) => {
+  addToJiraButton.style.display = 'none';
   loading.style.display = 'none';
   let innerHTML = '';
   for(let c of channels) {
-    innerHTML = innerHTML + generateCheckBox(c.id, c.name, selectedChannels.includes(c.id));
+    innerHTML = innerHTML + generateCheckBox(c.id, c.name, selectedChannels.includes(c.id), 'channels');
   }
   channelSelector.innerHTML = innerHTML;
   channelSelectorBox.style.display = 'block';
+}
+
+const showProjectSelector = (projects) => {
+  loading.style.display = 'none';
+  let innerHTML = '';
+  for(let p of projects) {
+    innerHTML = innerHTML + generateCheckBox(p.id, p.name, selectedProjects.includes(p.id), 'projects');
+  }
+  projectSelector.innerHTML = innerHTML;
+  projectSelectorBox.style.display = 'block';
 }
 
 
@@ -223,6 +276,7 @@ resetChannels.onclick = async () => {
 }
 
 const main = () => {
+  let flag = false;
   const params = new URLSearchParams(window.location.search);
   if(params.get('slackToken')) {
     localStorage.setItem('slackToken', params.get('slackToken'));
@@ -244,11 +298,16 @@ const main = () => {
       loading.style.display = 'none'
       buttons.style.display = 'flex'
     } else {
+      flag = true;
       getChannels().then(showChannelSelector);
     }
   } else {
     loading.style.display = 'none'
     addToSlackButton.style.display = 'block'
+  }
+
+  if(!localStorage.getItem('projects') && !flag) {
+    addToJiraButton.style.display = 'block'
   }
 
   if(localStorage.getItem('googleAccessToken')) {

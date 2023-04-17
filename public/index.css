@@ -226,7 +226,7 @@ h1 {
   }
 }
 
-#channelSelector {
+#channelSelector,#projectSelector {
   display: grid;
   place-content: center;
   max-height: 400px;
@@ -236,7 +236,7 @@ h1 {
   overflow-y: scroll;
 }
 
-#applySelectedChannels {
+#applySelectedChannels,#applySelectedProjects {
   margin-top: 2em;
   margin-bottom: 0;
 }

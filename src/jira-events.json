@@ -2,73 +2,20 @@
   "events": [
     {
       "event_id": "1",
-      "event_type": "issue_created",
-      "timestamp": "2023-03-28T10:23:45Z",
-      "issue_key": "PROJ-123",
-      "summary": "Update user authentication",
-      "description": "We need to update the user authentication system to use a more secure protocol",
-      "assignee": "Abhishek Mishra",
-      "priority": "High",
-      "status": "To Do"
+      "event_type": "issue_commented",
+      "timestamp": "2023-04-05T16:52:01Z",
+      "issue_key": "AC-3",
+      "sprint": "AC Sprint 1",
+      "comment": "The challenge could be ensuring compatibility with older user accounts when updating to a more secure protocol for user authentication.",
+      "author": "Anshuman Dubey"
     },
     {
       "event_id": "2",
-      "event_type": "issue_updated",
-      "timestamp": "2023-03-29T13:45:12Z",
-      "issue_key": "PROJ-123",
-      "summary": "Update user authentication",
-      "description": "We need to update the user authentication system to use a more secure protocol",
-      "assignee": "Anshuman Dubey",
-      "priority": "High",
-      "status": "In Progress"
-    },
-    {
-      "event_id": "3",
       "event_type": "issue_commented",
-      "timestamp": "2023-03-30T09:15:32Z",
-      "issue_key": "PROJ-123",
-      "comment": "I agree with Abhishek, we need to prioritize this task and get it done as soon as possible",
-      "author": "Manish Gowardipe"
-    },
-    {
-      "event_id": "4",
-      "event_type": "issue_updated",
-      "timestamp": "2023-03-31T16:30:05Z",
-      "issue_key": "PROJ-123",
-      "summary": "Update user authentication",
-      "description": "We need to update the user authentication system to use a more secure protocol",
-      "assignee": "Anshuman Dubey",
-      "priority": "High",
-      "status": "Done"
-    },
-    {
-      "event_id": "5",
-      "event_type": "issue_created",
-      "timestamp": "2023-04-01T14:22:10Z",
-      "issue_key": "PROJ-124",
-      "summary": "Add new payment gateway",
-      "description": "We need to add support for a new payment gateway to improve user experience",
-      "assignee": "Manish Gowardipe",
-      "priority": "High",
-      "status": "To Do"
-    },
-    {
-      "event_id": "6",
-      "event_type": "issue_updated",
-      "timestamp": "2023-04-02T10:45:33Z",
-      "issue_key": "PROJ-124",
-      "summary": "Add new payment gateway",
-      "description": "We need to add support for a new payment gateway to improve user experience",
-      "assignee": "Abhishek Mishra",
-      "priority": "High",
-      "status": "In Progress"
-    },
-    {
-      "event_id": "7",
-      "event_type": "issue_commented",
-      "timestamp": "2023-04-03T16:52:01Z",
-      "issue_key": "PROJ-124",
-      "comment": "I think we need to check the compatibility of the new payment gateway with our system before we proceed",
+      "timestamp": "2023-04-05T16:52:01Z",
+      "issue_key": "AC-4",
+      "sprint": "AC Sprint 1",
+      "comment": "We should be careful to ensure that the new payment gateway meets regulatory and compliance requirements, such as PCI-DSS and GDPR, and that additional security measures are implemented to ensure ongoing compliance.",
       "author": "Anshuman Dubey"
     }
   ]
